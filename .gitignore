@@ -1,0 +1,47 @@
+# Created by venv; see https://docs.python.org/3/library/venv.html
+# ===== OS =====
+.DS_Store
+Thumbs.db
+
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*.pyd
+*.so
+*.egg-info/
+dist/
+build/
+pip-wheel-metadata/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Python tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# ===== Flask / runtime artifacts =====
+instance/
+*.sqlite3
+*.log
+
+# If you store uploads or generated assets locally, ignore them by default
+uploads/
+static/generated/
+outputs/
+
+# ===== Environment variables / secrets =====
+.env
+.env.*
+!.env.example
+
+# ===== IDE =====
+.idea/
+*.iml
+.vscode/
+

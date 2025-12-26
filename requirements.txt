@@ -1,0 +1,6 @@
+Flask>=2.2
+paddleocr>=2.7.0
+requests>=2.31.0
+Pillow>=10.0.0
+opencv-python>=4.8.0.76
+numpy>=1.24
