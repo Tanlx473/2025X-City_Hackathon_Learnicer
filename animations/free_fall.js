@@ -48,17 +48,25 @@ class FreeFall extends AnimationBase {
   }
 }
 
-// 测试代码
-const canvas = document.getElementById('test');
-const anim = new FreeFall(canvas, {
-  height: 20,
-  g: 9.8,
-  mass: 1
-});
+// 测试代码 - 仅在测试页面存在对应元素时运行
+if (typeof document !== 'undefined') {
+  const testCanvas = document.getElementById('test');
+  if (testCanvas) {
+    const anim = new FreeFall(testCanvas, {
+      height: 20,
+      g: 9.8,
+      mass: 1
+    });
 
-anim.play();
+    anim.play();
 
-// 添加控制
-document.getElementById('pause-btn').onclick = () => anim.pause();
-document.getElementById('play-btn').onclick = () => anim.play();
-document.getElementById('reset-btn').onclick = () => anim.reset();
+    // 添加控制
+    const pauseBtn = document.getElementById('pause-btn');
+    const playBtn = document.getElementById('play-btn');
+    const resetBtn = document.getElementById('reset-btn');
+
+    if (pauseBtn) pauseBtn.onclick = () => anim.pause();
+    if (playBtn) playBtn.onclick = () => anim.play();
+    if (resetBtn) resetBtn.onclick = () => anim.reset();
+  }
+}
