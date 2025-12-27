@@ -85,19 +85,28 @@ class AnimationEngine {
     }
 
     // 旧格式转新格式的映射逻辑
-    const oldType = raw.type || 'projectile';
-    const subType = oldType === 'projectile' ? 'projectile_motion' :
-                    oldType === 'free_fall' ? 'free_fall' :
-                    'projectile_motion';
+    // 优先使用 motion_type_original，其次使用 type
+    const motionType = raw.motion_type_original || raw.type || 'projectile';
+
+    // 映射到 PhysicsVisualizer 支持的类型
+    let subType;
+    if (motionType === 'free_fall') {
+      subType = 'free_fall';
+    } else if (motionType === 'uniform') {
+      subType = 'uniform';
+    } else {
+      // horizontal_projectile, vertical_throw, projectile 都映射为 projectile_motion
+      subType = 'projectile_motion';
+    }
 
     return {
       sub_type: subType,
       parameters: {
-        v0: raw.initial_speed || raw.v0 || 20,
-        angle: raw.angle || 45,
-        g: raw.gravity || raw.g || 9.8,
-        h0: raw.initial_y || raw.y0 || raw.h0 || 0,
-        mass: raw.mass || 1,
+        v0: raw.initial_speed !== undefined ? raw.initial_speed : (raw.v0 !== undefined ? raw.v0 : 20),
+        angle: raw.angle !== undefined ? raw.angle : 45,
+        g: raw.gravity !== undefined ? raw.gravity : (raw.g !== undefined ? raw.g : 9.8),
+        h0: raw.initial_y !== undefined ? raw.initial_y : (raw.y0 !== undefined ? raw.y0 : (raw.h0 !== undefined ? raw.h0 : 0)),
+        mass: raw.mass !== undefined ? raw.mass : 1,
         // 保留 scale 和 duration（如果 animations/ 需要）
         scale: raw.scale,
         duration: raw.duration
