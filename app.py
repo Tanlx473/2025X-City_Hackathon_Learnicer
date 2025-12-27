@@ -1,5 +1,5 @@
 import os
-from flask import Flask, render_template
+from flask import Flask, render_template, send_from_directory
 from config import Config
 from routes.upload import upload_bp
 
@@ -26,6 +26,17 @@ def create_app():
     @app.get("/")
     def index():
         return render_template("index.html")
+
+    # 动画模块测试页面
+    @app.get("/test")
+    def animation_test():
+        return render_template("animation_test.html")
+
+    # 提供 animations/ 文件夹的静态文件访问
+    @app.route('/animations/<path:filename>')
+    def animations_static(filename):
+        animations_dir = os.path.join(app.root_path, 'animations')
+        return send_from_directory(animations_dir, filename)
 
     return app
 

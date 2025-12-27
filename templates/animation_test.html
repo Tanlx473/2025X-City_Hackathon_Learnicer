@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>动画模块合并测试</title>
+  <style>
+    body {
+      font-family: 'Microsoft YaHei', SimHei, sans-serif;
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+
+    h1 {
+      color: #333;
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .test-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .test-section {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .test-section h2 {
+      margin-top: 0;
+      color: #2563eb;
+      font-size: 18px;
+      border-bottom: 2px solid #e5e7eb;
+      padding-bottom: 10px;
+    }
+
+    canvas {
+      border: 2px solid #d1d5db;
+      border-radius: 4px;
+      background: #fafafa;
+      width: 100%;
+      display: block;
+      margin: 15px 0;
+    }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+
+    button.primary {
+      background: #2563eb;
+      color: white;
+    }
+
+    button.primary:hover {
+      background: #1d4ed8;
+    }
+
+    button.secondary {
+      background: #6b7280;
+      color: white;
+    }
+
+    button.secondary:hover {
+      background: #4b5563;
+    }
+
+    button.success {
+      background: #10b981;
+      color: white;
+    }
+
+    button.success:hover {
+      background: #059669;
+    }
+
+    .log-container {
+      grid-column: 1 / -1;
+      background: #1f2937;
+      color: #10b981;
+      padding: 20px;
+      border-radius: 8px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .log-entry {
+      margin: 5px 0;
+      padding: 3px 0;
+      border-bottom: 1px solid #374151;
+    }
+
+    .log-entry.success {
+      color: #10b981;
+    }
+
+    .log-entry.error {
+      color: #ef4444;
+    }
+
+    .log-entry.info {
+      color: #3b82f6;
+    }
+
+    .mock-data {
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      padding: 12px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      margin-top: 10px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-left: 10px;
+    }
+
+    .status-badge.pass {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .status-badge.fail {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .status-badge.pending {
+      background: #fef3c7;
+      color: #92400e;
+    }
+  </style>
+</head>
+<body>
+  <h1>🧪 Canvas 动画模块合并测试</h1>
+
+  <div class="test-container">
+    <!-- 测试 1：旧格式平抛 -->
+    <div class="test-section">
+      <h2>测试 1：旧格式平抛运动 <span id="status1" class="status-badge pending">待测试</span></h2>
+      <canvas id="canvas1" width="600" height="350"></canvas>
+      <div class="controls">
+        <button class="primary" onclick="runTest1()">▶ 运行测试</button>
+        <button class="secondary" onclick="pauseTest1()">⏸ 暂停</button>
+        <button class="success" onclick="replayTest1()">⏮ 重播</button>
+      </div>
+      <div class="mock-data">
+        <strong>Mock 数据（旧格式）:</strong>
+        <pre>{
+  "type": "projectile",
+  "initial_speed": 15,
+  "angle": 30,
+  "gravity": 9.8,
+  "scale": 18
+}</pre>
+      </div>
+    </div>
+
+    <!-- 测试 2：新格式抛体 -->
+    <div class="test-section">
+      <h2>测试 2：新格式抛体运动 <span id="status2" class="status-badge pending">待测试</span></h2>
+      <canvas id="canvas2" width="600" height="350"></canvas>
+      <div class="controls">
+        <button class="primary" onclick="runTest2()">▶ 运行测试</button>
+        <button class="secondary" onclick="pauseTest2()">⏸ 暂停</button>
+        <button class="success" onclick="replayTest2()">⏮ 重播</button>
+      </div>
+      <div class="mock-data">
+        <strong>Mock 数据（新格式）:</strong>
+        <pre>{
+  "sub_type": "projectile_motion",
+  "parameters": {
+    "v0": 20,
+    "angle": 45,
+    "g": 9.8,
+    "h0": 0,
+    "mass": 1
+  }
+}</pre>
+      </div>
+    </div>
+
+    <!-- 测试 3：自由落体 -->
+    <div class="test-section">
+      <h2>测试 3：自由落体 <span id="status3" class="status-badge pending">待测试</span></h2>
+      <canvas id="canvas3" width="600" height="350"></canvas>
+      <div class="controls">
+        <button class="primary" onclick="runTest3()">▶ 运行测试</button>
+        <button class="secondary" onclick="pauseTest3()">⏸ 暂停</button>
+        <button class="success" onclick="replayTest3()">⏮ 重播</button>
+      </div>
+      <div class="mock-data">
+        <strong>Mock 数据（新格式）:</strong>
+        <pre>{
+  "sub_type": "free_fall",
+  "parameters": {
+    "height": 15,
+    "g": 9.8,
+    "mass": 1
+  }
+}</pre>
+      </div>
+    </div>
+
+    <!-- 一键测试所有 -->
+    <div class="test-section">
+      <h2>🚀 批量测试</h2>
+      <p>运行所有测试场景，验证兼容性</p>
+      <div class="controls">
+        <button class="primary" onclick="runAllTests()" style="font-size: 16px; padding: 12px 24px;">
+          ▶ 运行所有测试
+        </button>
+      </div>
+    </div>
+
+    <!-- 日志输出 -->
+    <div class="log-container" id="logContainer">
+      <strong>🔍 测试日志</strong>
+      <div id="logs"></div>
+    </div>
+  </div>
+
+  <!-- 引入动画模块（与主页面相同的加载顺序） -->
+  <script src="/animations/animation_base.js"></script>
+  <script src="/animations/free_fall.js"></script>
+  <script src="/animations/projectile_motion.js"></script>
+  <script src="/animations/physics_visualizer.js"></script>
+  <script src="{{ url_for('static', filename='animation.js') }}"></script>
+
+  <script>
+    let engine1, engine2, engine3;
+
+    // 日志输出
+    function log(message, type = 'info') {
+      const logsDiv = document.getElementById('logs');
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${type}`;
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      logsDiv.appendChild(entry);
+      logsDiv.scrollTop = logsDiv.scrollHeight;
+    }
+
+    // 更新状态徽章
+    function updateStatus(id, status) {
+      const badge = document.getElementById(id);
+      badge.className = `status-badge ${status}`;
+      badge.textContent = status === 'pass' ? '✅ 通过' : status === 'fail' ? '❌ 失败' : '⏳ 运行中';
+    }
+
+    // 测试 1：旧格式平抛
+    function runTest1() {
+      try {
+        updateStatus('status1', 'pending');
+        log('开始测试 1：旧格式平抛运动...', 'info');
+
+        const canvas = document.getElementById('canvas1');
+        engine1 = new AnimationEngine(canvas);
+
+        const mockData = {
+          type: 'projectile',
+          initial_speed: 15,
+          angle: 30,
+          gravity: 9.8,
+          scale: 18
+        };
+
+        engine1.loadInstructions(mockData);
+        engine1.play();
+
+        updateStatus('status1', 'pass');
+        log('✅ 测试 1 成功：旧格式自动转换，动画播放正常', 'success');
+      } catch (error) {
+        updateStatus('status1', 'fail');
+        log(`❌ 测试 1 失败: ${error.message}`, 'error');
+      }
+    }
+
+    function pauseTest1() {
+      if (engine1) engine1.pause();
+      log('暂停测试 1', 'info');
+    }
+
+    function replayTest1() {
+      if (engine1) {
+        engine1.reset();
+        engine1.play();
+        log('重播测试 1', 'info');
+      }
+    }
+
+    // 测试 2：新格式抛体
+    function runTest2() {
+      try {
+        updateStatus('status2', 'pending');
+        log('开始测试 2：新格式抛体运动...', 'info');
+
+        const canvas = document.getElementById('canvas2');
+        engine2 = new AnimationEngine(canvas);
+
+        const mockData = {
+          sub_type: 'projectile_motion',
+          parameters: {
+            v0: 20,
+            angle: 45,
+            g: 9.8,
+            h0: 0,
+            mass: 1
+          }
+        };
+
+        engine2.loadInstructions(mockData);
+        engine2.play();
+
+        updateStatus('status2', 'pass');
+        log('✅ 测试 2 成功：新格式直接使用，动画播放正常', 'success');
+      } catch (error) {
+        updateStatus('status2', 'fail');
+        log(`❌ 测试 2 失败: ${error.message}`, 'error');
+      }
+    }
+
+    function pauseTest2() {
+      if (engine2) engine2.pause();
+      log('暂停测试 2', 'info');
+    }
+
+    function replayTest2() {
+      if (engine2) {
+        engine2.reset();
+        engine2.play();
+        log('重播测试 2', 'info');
+      }
+    }
+
+    // 测试 3：自由落体
+    function runTest3() {
+      try {
+        updateStatus('status3', 'pending');
+        log('开始测试 3：自由落体...', 'info');
+
+        const canvas = document.getElementById('canvas3');
+        engine3 = new AnimationEngine(canvas);
+
+        const mockData = {
+          sub_type: 'free_fall',
+          parameters: {
+            height: 15,
+            g: 9.8,
+            mass: 1
+          }
+        };
+
+        engine3.loadInstructions(mockData);
+        engine3.play();
+
+        updateStatus('status3', 'pass');
+        log('✅ 测试 3 成功：自由落体动画播放正常', 'success');
+      } catch (error) {
+        updateStatus('status3', 'fail');
+        log(`❌ 测试 3 失败: ${error.message}`, 'error');
+      }
+    }
+
+    function pauseTest3() {
+      if (engine3) engine3.pause();
+      log('暂停测试 3', 'info');
+    }
+
+    function replayTest3() {
+      if (engine3) {
+        engine3.reset();
+        engine3.play();
+        log('重播测试 3', 'info');
+      }
+    }
+
+    // 运行所有测试
+    async function runAllTests() {
+      log('========================================', 'info');
+      log('🚀 开始批量测试...', 'info');
+      log('========================================', 'info');
+
+      runTest1();
+      await sleep(2000);
+      pauseTest1();
+
+      runTest2();
+      await sleep(2000);
+      pauseTest2();
+
+      runTest3();
+      await sleep(2000);
+      pauseTest3();
+
+      log('========================================', 'success');
+      log('✅ 所有测试完成！', 'success');
+      log('========================================', 'success');
+    }
+
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    // 页面加载完成
+    window.addEventListener('load', () => {
+      log('========================================', 'info');
+      log('🧪 动画模块合并测试页面已加载', 'success');
+      log('检查全局对象...', 'info');
+
+      if (typeof AnimationEngine !== 'undefined') {
+        log('✅ AnimationEngine 已加载（兼容适配层）', 'success');
+      } else {
+        log('❌ AnimationEngine 未找到', 'error');
+      }
+
+      if (typeof PhysicsVisualizer !== 'undefined') {
+        log('✅ PhysicsVisualizer 已加载（核心引擎）', 'success');
+      } else {
+        log('❌ PhysicsVisualizer 未找到', 'error');
+      }
+
+      if (typeof AnimationBase !== 'undefined') {
+        log('✅ AnimationBase 已加载（基类）', 'success');
+      } else {
+        log('❌ AnimationBase 未找到', 'error');
+      }
+
+      log('========================================', 'info');
+      log('✅ 准备就绪，可以开始测试！', 'success');
+      log('========================================', 'info');
+    });
+  </script>
+</body>
+</html>
