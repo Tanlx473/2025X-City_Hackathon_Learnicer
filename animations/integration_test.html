@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>物理可视化集成测试</title>
+  <style>
+    body {
+      font-family: 'Microsoft YaHei', SimHei, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    .container {
+      display: flex;
+      gap: 20px;
+    }
+    
+    .canvas-area {
+      flex: 2;
+    }
+    
+    canvas {
+      border: 1px solid #ccc;
+      background: #f9f9f9;
+    }
+    
+    .controls {
+      margin-top: 10px;
+    }
+    
+    .controls button {
+      padding: 8px 15px;
+      margin-right: 5px;
+      cursor: pointer;
+    }
+    
+    .steps-panel {
+      flex: 1;
+      background: #f5f5f5;
+      padding: 15px;
+      border-radius: 5px;
+      max-height: 600px;
+      overflow-y: auto;
+    }
+    
+    .step-item {
+      background: white;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    
+    .step-item:hover {
+      background: #e3f2fd;
+    }
+    
+    .step-item.active {
+      background: #2196f3;
+      color: white;
+    }
+    
+    .step-item h4 {
+      margin: 0 0 5px 0;
+    }
+    
+    .step-item p {
+      margin: 0;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <h1>物理题目可视化演示</h1>
+  
+  <div class="container">
+    <div class="canvas-area">
+      <canvas id="physics-canvas" width="800" height="600"></canvas>
+      
+      <div class="controls">
+        <button id="play-btn">▶ 播放</button>
+        <button id="pause-btn">⏸ 暂停</button>
+        <button id="reset-btn">⏮ 重置</button>
+        <button id="step-back">⏪</button>
+        <button id="step-forward">⏩</button>
+        
+        <label>速度:
+          <select id="speed-select">
+            <option value="0.5">0.5x</option>
+            <option value="1" selected>1x</option>
+            <option value="2">2x</option>
+          </select>
+        </label>
+        
+        <button id="export-btn">📷 导出当前帧</button>
+      </div>
+    </div>
+    
+    <div class="steps-panel" id="steps-panel">
+      <h3>解题步骤</h3>
+      <!-- 步骤将动态填充 -->
+    </div>
+  </div>
+  
+  <!-- 引入所有脚本 -->
+  <script src="animation_base.js"></script>
+  <script src="free_fall.js"></script>
+  <script src="projectile_motion.js"></script>
+  <script src="incline_plane.js"></script>
+  <script src="circular_motion.js"></script>
+  <script src="physics_visualizer.js"></script>
+  
+  <script>
+    // 模拟后端返回的数据（实际应从API获取）
+    const mockBackendData = {
+      problem_type: "mechanics",
+      sub_type: "projectile_motion",
+      description: "一小球以20m/s的初速度从地面以45°角斜向上抛出，求最大高度和射程。(g=9.8m/s²)",
+      
+      parameters: {
+        v0: 20,
+        angle: 45,
+        h0: 0,
+        g: 9.8,
+        mass: 1
+      },
+      
+      solution_steps: [
+        {
+          step: 1,
+          description: "分解初速度",
+          formula: "vₓ = v₀·cos45° = 14.14 m/s, vᵧ = v₀·sin45° = 14.14 m/s",
+          animation_time: [0, 1]
+        },
+        {
+          step: 2,
+          description: "物体上升阶段",
+          formula: "最高点时 vᵧ = 0",
+          animation_time: [1, 1.44]
+        },
+        {
+          step: 3,
+          description: "计算最大高度",
+          formula: "h_max = vᵧ²/(2g) = 10.2 m",
+          animation_time: [1.44, 1.5]
+        },
+        {
+          step: 4,
+          description: "物体下降阶段",
+          formula: "vᵧ = gt",
+          animation_time: [1.5, 2.88]
+        },
+        {
+          step: 5,
+          description: "计算射程",
+          formula: "R = v₀²·sin(2θ)/g = 40.8 m",
+          animation_time: [2.88, 3]
+        }
+      ]
+    };
+    
+    // 初始化可视化器
+    const visualizer = new PhysicsVisualizer('physics-canvas');
+    
+    // 加载动画
+    visualizer.loadAnimation(mockBackendData);
+    
+    // 渲染解题步骤
+    function renderSteps(steps) {
+      const panel = document.getElementById('steps-panel');
+      steps.forEach((step, index) => {
+        const div = document.createElement('div');
+        div.className = 'step-item';
+        div.id = `step-${index}`;
+        div.innerHTML = `
+          <h4>步骤${step.step}：${step.description}</h4>
+          <p>${step.formula}</p>
+        `;
+        div.onclick = () => {
+          visualizer.playStep(index);
+          // 高亮当前步骤
+          document.querySelectorAll('.step-item').forEach(el => {
+            el.classList.remove('active');
+          });
+          div.classList.add('active');
+        };
+        panel.appendChild(div);
+      });
+    }
+    
+    renderSteps(mockBackendData.solution_steps);
+    
+    // 绑定控制按钮
+    document.getElementById('play-btn').onclick = () => visualizer.play();
+    document.getElementById('pause-btn').onclick = () => visualizer.pause();
+    document.getElementById('reset-btn').onclick = () => visualizer.reset();
+    document.getElementById('step-back').onclick = () => {
+      if (visualizer.currentAnimation) {
+        visualizer.currentAnimation.stepBackward();
+      }
+    };
+    document.getElementById('step-forward').onclick = () => {
+      if (visualizer.currentAnimation) {
+        visualizer.currentAnimation.stepForward();
+      }
+    };
+    
+    document.getElementById('speed-select').onchange = function() {
+      if (visualizer.currentAnimation) {
+        visualizer.currentAnimation.setSpeed(parseFloat(this.value));
+      }
+    };
+    
+    document.getElementById('export-btn').onclick = () => {
+      const dataURL = visualizer.exportFrame();
+      const link = document.createElement('a');
+      link.download = `physics_frame_${Date.now()}.png`;
+      link.href = dataURL;
+      link.click();
+    };
+    
+    // 监听动画事件
+    document.getElementById('physics-canvas').addEventListener('step:active', (e) => {
+      console.log('激活步骤:', e.detail.stepIndex);
+    });
+    
+    // 自动播放
+    setTimeout(() => {
+      visualizer.play();
+    }, 1000);
+  </script>
+</body>
+</html>

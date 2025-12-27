@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Canvas测试</title>
+  <script src="matter.min.js"></script>
+</head>
+<body>
+  <canvas id="test" width="800" height="600"></canvas>
+  <script>
+    // 测试1：绘制坐标系
+    const canvas = document.getElementById('test');
+    const ctx = canvas.getContext('2d');
+    
+    function drawCoordinateSystem() {
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 2;
+      
+      // X轴
+      ctx.beginPath();
+      ctx.moveTo(50, canvas.height - 50);
+      ctx.lineTo(canvas.width - 50, canvas.height - 50);
+      ctx.stroke();
+      ctx.fillText('x', canvas.width - 40, canvas.height - 40);
+      
+      // Y轴
+      ctx.beginPath();
+      ctx.moveTo(50, 50);
+      ctx.lineTo(50, canvas.height - 50);
+      ctx.stroke();
+      ctx.fillText('y', 40, 60);
+      
+      // 刻度
+      for (let i = 0; i <= 10; i++) {
+        const x = 50 + i * 70;
+        ctx.beginPath();
+        ctx.moveTo(x, canvas.height - 50);
+        ctx.lineTo(x, canvas.height - 45);
+        ctx.stroke();
+        ctx.fillText(i + 'm', x - 5, canvas.height - 30);
+      }
+    }
+    
+    drawCoordinateSystem();
+    
+    // 测试2：Matter.js物理引擎
+    const { Engine, Render, World, Bodies } = Matter;
+    const engine = Engine.create();
+    engine.gravity.y = 9.8;
+    
+    const ball = Bodies.circle(100, 100, 10, {
+      restitution: 0.8,
+      label: '小球'
+    });
+    
+    const ground = Bodies.rectangle(400, 550, 800, 20, {
+      isStatic: true,
+      label: '地面'
+    });
+    
+    World.add(engine.world, [ball, ground]);
+    
+    // 手动渲染循环（不用Matter的Render）
+    function animate() {
+      Engine.update(engine, 1000/60);
+      
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawCoordinateSystem();
+      
+      // 绘制小球
+      ctx.fillStyle = 'red';
+      ctx.beginPath();
+      ctx.arc(ball.position.x, ball.position.y, 10, 0, 2*Math.PI);
+      ctx.fill();
+      
+      // 绘制地面
+      ctx.fillStyle = '#8B4513';
+      ctx.fillRect(0, 550, 800, 20);
+      requestAnimationFrame(animate);
+}
+
+animate();

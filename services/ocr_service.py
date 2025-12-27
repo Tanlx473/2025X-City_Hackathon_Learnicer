@@ -32,7 +32,8 @@ def ocr_extract_text(image_path: str) -> str:
     返回 OCR 识别出的多行文本，用换行拼接。
     """
     ocr = get_ocr()
-    result = ocr.ocr(image_path, cls=True)
+    # result = ocr.ocr(image_path, cls=True)
+    result = ocr.ocr(image_path)
 
     if not result:
         return ""
