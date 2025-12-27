@@ -3,7 +3,7 @@ from flask import Blueprint, request, jsonify, current_app
 from werkzeug.utils import secure_filename
 
 from services.ocr_service import ocr_extract_text
-from services.llm_service import llm_analyze_placeholder
+from services.llm_service import analyze_physics_text
 from utils.json_builder import build_response
 
 upload_bp = Blueprint("upload", __name__)
@@ -40,8 +40,8 @@ def upload():
     except Exception as e:
         return jsonify({"error": "ocr failed", "details": str(e)}), 500
 
-    # LLM（占位：先返回固定结构，确保B/C可联调）
-    llm_result = llm_analyze_placeholder(text)
+    # LLM/规则引擎：抽取题目类型 + 动画参数
+    llm_result = analyze_physics_text(text)
 
     # 统一响应结构
     resp = build_response(
