@@ -22,6 +22,7 @@ def create_app():
         return {"status": "ok"}
 
     # 临时首页（后续让 B 同学完善 templates/static）
+    # @app.get("/")
     @app.get("/")
     def index():
         return render_template("index.html")

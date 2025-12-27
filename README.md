@@ -16,6 +16,8 @@ A Flask-based backend with PaddleOCR for image-to-structured-output, plus a ligh
 ## Project Setup
 
 ### 1) Create & activate a virtual environment
+创建并激活虚拟环境
+
 macOS / Linux:
 ```bash
 python3 -m venv .venv
@@ -31,7 +33,9 @@ python -m venv .venv
 python -m pip install --upgrade pip
 ```
 
-### 2) Install PaddlePaddle (macOS / Apple Silicon recommended)
+### 2) Install PaddlePaddle 
+安装 PaddlePaddle
+由于不同系统/架构安装方式不同，paddlepaddle 故意没有写进 requirements.txt，请先单独安装。
 
 Official command (CPU-only on macOS):
 
@@ -55,10 +59,44 @@ python -c "import platform; print(platform.architecture()[0]); print(platform.ma
 ```
 
 ### 3) Install remaining Python dependencies
+安装其余依赖
 
 ```bash
 pip install -r requirements.txt
 ```
+
+### 4) Run backend 
+启动后端
+
+```bash
+python app.py
+```
+
+### 5) Verify backend is working (health check)
+验证后端运行（健康检查）
+```bash
+curl http://127.0.0.1:5000/health
+```
+Expected response:
+```bash
+{"status":"ok"}
+```
+
+### 6) Test image upload API
+测试上传接口
+使用本地图片文件（将 `test.jpg` 替换为你的路径）：
+
+```bash
+curl -X POST http://127.0.0.1:5000/upload -F "file=@test.jpg"
+```
+Expected: a JSON response that includes at least:
+
+- `ocr_text`
+
+- `solution_steps`
+
+- `animation_instructions`
+
 
 ## Known Issue (Python 3.13 + PaddleOCR Import Error)
 
@@ -67,6 +105,7 @@ On Python 3.13, `import paddleocr` may fail due to a transitive dependency (`mod
 Workaround: set the env var before importing PaddleOCR:
 
 Option A — set in code (recommended in backend entrypoint):
+推荐方案：在导入 PaddleOCR 之前（例如 `app.py` 最顶部或注册路由之前）在代码中设置：
 
 ```python
 import os
@@ -74,6 +113,7 @@ os.environ.setdefault("HUB_DATASET_ENDPOINT", "https://modelscope.cn/api/v1/data
 ```
 
 Option B — set in shell:
+备选方案：在终端中设置：
 
 ```bash
 export HUB_DATASET_ENDPOINT="https://modelscope.cn/api/v1/datasets"
@@ -96,6 +136,22 @@ flask --app app run --debug
 Then open:
 
 * [http://127.0.0.1:5000/](http://127.0.0.1:5000/)
+
+运行方式（示例）
+如果入口为根目录 `app.py`：
+```bash
+python app.py
+```
+
+或使用 Flask CLI：
+```bash
+flask --app app run --debug
+```
+打开：
+```
+http://127.0.0.1:5000/
+```
+
 
 ## Team Workflow
 
