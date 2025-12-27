@@ -48,6 +48,9 @@ def upload():
         problem_type=llm_result.get("problem_type", "unknown"),
         ocr_text=text,
         solution_steps=llm_result.get("solution_steps", []),
-        animation_instructions=llm_result.get("animation_instructions", {})
+        animation_instructions=llm_result.get("animation_instructions", []),
     )
+    # 兼容额外字段（如参数等），方便前端调试
+    if "parameters" in llm_result:
+        resp["parameters"] = llm_result["parameters"]
     return jsonify(resp), 200
