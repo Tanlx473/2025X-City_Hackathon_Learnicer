@@ -204,17 +204,22 @@ def _extract_parameters_fallback(ocr_text: str) -> Dict[str, Any]:
         r"初速度\s*[:：=]?\s*([0-9]+(?:\.[0-9]+)?)",
         r"v0\s*[:：=]?\s*([0-9]+(?:\.[0-9]+)?)",
         r"速度\s*[:：=]?\s*([0-9]+(?:\.[0-9]+)?)\s*(?:m/s|米/秒|米每秒)?",
+        r"以\s*([0-9]+(?:\.[0-9]+)?)\s*m/s",
+        r"([0-9]+(?:\.[0-9]+)?)\s*m/s\s*的.*速度",
     ], ocr_text)
 
     angle = _match_number([
         r"角度\s*[:：=]?\s*([0-9]+(?:\.[0-9]+)?)",
-        r"([0-9]+(?:\.[0-9]+)?)\s*[°度]",
+        r"([0-9]+(?:\.[0-9]+)?)\s*[°度]\s*角",
+        r"以\s*([0-9]+(?:\.[0-9]+)?)\s*[°度]",
     ], ocr_text)
 
     height = _match_number([
         r"高度\s*(?:为|是|[:：])\s*([0-9]+(?:\.[0-9]+)?)",
         r"从\s*([0-9]+(?:\.[0-9]+)?)\s*[米m]",
         r"高\s*([0-9]+(?:\.[0-9]+)?)\s*[米m]",
+        r"([0-9]+(?:\.[0-9]+)?)\s*米高",
+        r"([0-9]+(?:\.[0-9]+)?)\s*m高",
     ], ocr_text)
 
     gravity = _match_number([
@@ -231,22 +236,56 @@ def _extract_parameters_fallback(ocr_text: str) -> Dict[str, Any]:
 
 
 def _detect_motion_type_fallback(ocr_text: str) -> str:
-    """规则引擎：运动类型判别"""
-    if any(keyword in ocr_text for keyword in ["平抛", "水平抛", "水平抛射"]):
-        return "horizontal_projectile"
-    if any(keyword in ocr_text for keyword in ["自由落体", "下落", "坠落"]):
-        return "free_fall"
-    if any(keyword in ocr_text for keyword in ["竖直上抛", "竖直上抛运动", "上抛"]):
-        return "vertical_throw"
+    """规则引擎：运动类型判别
+
+    优先级：具体类型 > 一般类型
+    """
+    # 检查匀速直线运动（优先，避免误判）
     if "匀速" in ocr_text or "匀速直线" in ocr_text:
         return "uniform"
+
+    # 检查自由落体（优先，很明确）
+    if any(keyword in ocr_text for keyword in ["自由落体", "自由下落"]):
+        return "free_fall"
+
+    # 检查平抛运动（优先，很明确）
+    if any(keyword in ocr_text for keyword in ["平抛", "水平抛", "水平抛射"]):
+        return "horizontal_projectile"
+
+    # 检查竖直上抛（需要更具体的关键词，避免误判斜抛）
+    # 只有明确说"竖直"才判定为竖直上抛
+    if "竖直上抛" in ocr_text or "竖直抛" in ocr_text:
+        return "vertical_throw"
+
+    # 检查角度信息：如果有角度且不是0或90，则为一般抛体
+    angle_match = re.search(r"([0-9]+(?:\.[0-9]+)?)\s*[°度]", ocr_text)
+    if angle_match:
+        angle = float(angle_match.group(1))
+        if 0 < angle < 90 and angle != 0:
+            return "projectile"
+        elif angle == 90:
+            return "vertical_throw"
+        elif angle == 0:
+            return "horizontal_projectile"
+
+    # 检查是否有"斜"、"角"等关键词，表明是斜抛
+    if any(keyword in ocr_text for keyword in ["斜抛", "斜向", "角度"]):
+        return "projectile"
+
+    # 最后才检查一般的"抛"
     if "抛" in ocr_text or "弹道" in ocr_text or "抛体" in ocr_text:
         return "projectile"
 
+    # 英文关键词
     lowered = ocr_text.lower()
     if "parabola" in lowered or "projectile" in lowered:
         return "projectile"
 
+    # 如果检查到"下落"但不是自由落体，可能是有初速度的抛体
+    if "下落" in ocr_text or "坠落" in ocr_text:
+        return "projectile"
+
+    # 默认返回一般抛体运动
     return "projectile"
 
 
