@@ -3,12 +3,19 @@
  * 对接前后端的统一接口
  */
 class PhysicsVisualizer {
-  constructor(canvasId, config = {}) {
-    this.canvas = document.getElementById(canvasId);
-    if (!this.canvas) {
-      throw new Error(`找不到Canvas元素: ${canvasId}`);
+  constructor(canvasOrId, config = {}) {
+    // 支持传入 Canvas 元素或 ID 字符串
+    if (typeof canvasOrId === 'string') {
+      this.canvas = document.getElementById(canvasOrId);
+      if (!this.canvas) {
+        throw new Error(`找不到Canvas元素: ${canvasOrId}`);
+      }
+    } else if (canvasOrId instanceof HTMLCanvasElement) {
+      this.canvas = canvasOrId;
+    } else {
+      throw new Error('参数必须是 Canvas 元素或 ID 字符串');
     }
-    
+
     this.config = config;
     this.currentAnimation = null;
     this.animationData = null;

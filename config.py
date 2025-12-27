@@ -1,4 +1,8 @@
 import os
+from dotenv import load_dotenv
+
+# 加载 .env 文件（如果存在）
+load_dotenv()
 
 class Config:
     DEBUG = True
@@ -16,9 +20,13 @@ class Config:
     # PaddleOCR 语言设置（'ch' 支持中英混合，'en' 仅英文）
     OCR_LANG = "ch"
 
-    # LLM 占位配置（未来接入真实接口时使用）
-    LLM_API_URL = os.environ.get("LLM_API_URL", "")
-    LLM_API_KEY = os.environ.get("LLM_API_KEY", "")
+    # Claude API 配置（用于物理题解析与动画指令生成）
+    CLAUDE_API_KEY = os.environ.get("CLAUDE_API_KEY", "")
+    CLAUDE_MODEL = os.environ.get("CLAUDE_MODEL", "claude-3-5-sonnet-20241022")
+    CLAUDE_MAX_TOKENS = int(os.environ.get("CLAUDE_MAX_TOKENS", "2048"))
+
+    # 是否启用 LLM（如果未配置 API key，将使用规则引擎降级）
+    ENABLE_LLM = bool(CLAUDE_API_KEY)
 
     # Python 3.13 + PaddleOCR 某些环境下的 modelscope 兼容性 workaround
     #（不一定每台机器都需要，但加上很安全）
