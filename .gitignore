@@ -36,9 +36,17 @@ static/generated/
 outputs/
 
 # ===== Environment variables / secrets =====
+# CRITICAL: 绝不提交包含真实密钥的文件到 Git
 .env
-.env.*
+.env.local
+.env.*.local
 !.env.example
+
+# 其他可能包含密钥的文件
+*.key
+*.pem
+secrets/
+credentials/
 
 # ===== IDE =====
 .idea/

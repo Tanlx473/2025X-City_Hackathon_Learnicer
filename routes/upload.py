@@ -3,7 +3,7 @@ import logging
 from flask import Blueprint, request, jsonify, current_app
 from werkzeug.utils import secure_filename
 
-from services.ocr_service import ocr_extract_text
+from services.ocr_service import extract_text, get_ocr_status
 from services.llm_service import analyze_physics_text
 from utils.json_builder import build_response
 
@@ -62,9 +62,9 @@ def upload():
                 "details": str(e)
             }), 500
 
-        # OCR 提取文本
+        # OCR 提取文本（使用新接口，支持 manual_text fallback）
         try:
-            ocr_text = ocr_extract_text(save_path)
+            ocr_text = extract_text(save_path, manual_text=None)
             logger.info(f"OCR 识别成功，文本长度: {len(ocr_text)}")
 
             if not ocr_text or not ocr_text.strip():
@@ -118,5 +118,30 @@ def upload():
         return jsonify({
             "error": "response_build_failed",
             "message": "构建响应失败",
+            "details": str(e)
+        }), 500
+
+
+@upload_bp.get("/ocr/status")
+def ocr_status():
+    """
+    OCR 状态检查接口（用于调试和健康检查）
+
+    返回：
+    {
+        "provider": "paddle/mock/manual",
+        "initialized": bool,
+        "lang": "ch/en",
+        "error": Optional[str]
+    }
+    """
+    try:
+        status = get_ocr_status()
+        return jsonify(status), 200
+    except Exception as e:
+        logger.error(f"获取 OCR 状态失败: {e}")
+        return jsonify({
+            "error": "status_check_failed",
+            "message": "获取 OCR 状态失败",
             "details": str(e)
         }), 500

@@ -5,7 +5,55 @@ A Flask-based backend with PaddleOCR for image-to-structured-output, plus a ligh
 ## Tech Stack
 - Backend: Flask
 - OCR: PaddleOCR (PaddlePaddle)
+- LLM: Anthropic Claude API (可选，支持降级)
 - Frontend: HTML/CSS/JavaScript + Canvas
+
+## ⚠️ 安全配置说明（必读）
+
+**本项目采用环境变量管理所有敏感配置（API Key、密钥等），确保安全性和团队协作友好性。**
+
+### 快速开始配置
+
+```bash
+# 1. 复制配置模板
+cp .env.example .env
+
+# 2. 编辑 .env 文件，填入你的实际配置
+# （使用任何文本编辑器）
+vi .env  # 或 nano .env，或 code .env
+
+# 3. 填入你的 Claude API Key（可选）
+# CLAUDE_API_KEY=your_actual_key_here
+```
+
+### 重要规则
+
+1. **绝不提交 `.env` 到 Git** - 已被 `.gitignore` 自动忽略
+2. **只提交 `.env.example`** - 仅包含占位符，无真实密钥
+3. **无需修改源代码** - 所有配置通过环境变量读取
+4. **支持降级运行** - 未配置 Claude API 时自动使用规则引擎
+
+### 配置项说明
+
+| 配置项 | 必需性 | 默认值 | 说明 |
+|--------|--------|--------|------|
+| `CLAUDE_API_KEY` | 可选 | 无 | Claude API 密钥（未配置则使用规则引擎降级） |
+| `OCR_PROVIDER` | 可选 | `paddle` | OCR 引擎（`paddle`/`mock`/`manual`） |
+| `OCR_LANG` | 可选 | `ch` | OCR 语言（`ch`=中英混合，`en`=英文） |
+
+### 获取 Claude API Key
+
+1. 访问 [Anthropic Console](https://console.anthropic.com/)
+2. 注册/登录账号
+3. 创建 API Key
+4. 复制到 `.env` 文件中的 `CLAUDE_API_KEY=`
+
+### 无 API Key 也能运行
+
+如果不配置 `CLAUDE_API_KEY`，系统会自动使用规则引擎降级方案：
+- 通过正则表达式提取物理参数
+- 准确率较低，但足够演示使用
+- 无需任何外部 API 调用
 
 ## Requirements
 - Python: 3.13
@@ -118,6 +166,56 @@ Option B — set in shell:
 ```bash
 export HUB_DATASET_ENDPOINT="https://modelscope.cn/api/v1/datasets"
 ```
+
+## OCR Configuration
+
+### OCR Provider 机制
+
+本项目支持多种 OCR provider，通过环境变量 `OCR_PROVIDER` 切换：
+
+```bash
+# 方式 1：PaddleOCR（默认，生产环境推荐）
+export OCR_PROVIDER=paddle
+
+# 方式 2：Mock OCR（快速测试，无需安装 PaddleOCR）
+export OCR_PROVIDER=mock
+
+# 方式 3：Manual OCR（手动输入文本）
+export OCR_PROVIDER=manual
+```
+
+### 使用场景
+
+**PaddleOCR (默认)**:
+- ✅ 识别准确率高，支持中英混合
+- ⚠️ 需要安装 paddleocr 和 paddlepaddle
+- ⚠️ 首次运行会下载模型文件（约 20MB）
+
+**Mock OCR (测试)**:
+- ✅ 无需安装 PaddleOCR，立即可用
+- ✅ 返回预设的物理题文本，用于演示
+- ⚠️ 不支持真实图片识别
+
+**Manual OCR (手动输入)**:
+- ✅ 完全手动控制，通过 `manual_text` 参数提供文本
+- ⚠️ 每次请求都需要提供 `manual_text`
+
+### 测试 OCR 功能
+
+```bash
+# 测试 PaddleOCR
+python tools/test_ocr.py test_images/physics_problem.jpg
+
+# 测试 Mock OCR（无需图片）
+OCR_PROVIDER=mock python tools/test_ocr.py
+
+# 检查 OCR 状态（需先启动服务器）
+curl http://127.0.0.1:5000/ocr/status
+```
+
+### 详细文档
+
+完整的 OCR 配置、测试、故障排查文档请参考：[OCR_USAGE_GUIDE.md](OCR_USAGE_GUIDE.md)
 
 ## Run (example)
 
