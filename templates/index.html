@@ -3,14 +3,78 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Learnicer</title>
+  <title>物理题目可视化解题工具</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
 </head>
 <body>
-  <h2>2025X-City_Hackathon_Learnicer</h2>
-  <p>后端已启动。测试接口：</p>
-  <ul>
-    <li><code>GET /health</code></li>
-    <li><code>POST /upload</code> (multipart/form-data, field name: file)</li>
-  </ul>
+  <header class="page-header">
+    <div class="title-group">
+      <p class="eyebrow">Learnicer</p>
+      <h1>物理题目可视化解题工具</h1>
+      <p class="subtitle">上传题目图片，查看解析步骤并播放 Canvas 动画</p>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="panel upload-panel">
+      <h2>上传题目图片</h2>
+      <form id="uploadForm" class="upload-form">
+        <label class="file-label" for="fileInput">
+          <span>选择图片文件</span>
+          <input type="file" id="fileInput" name="file" accept="image/*" required />
+        </label>
+        <button type="submit" class="primary-btn">上传并解析</button>
+      </form>
+      <div id="loading" class="loading" aria-live="polite" role="status" style="display: none;">
+        <span class="spinner"></span>
+        <span>正在解析图片，请稍候...</span>
+      </div>
+      <div id="errorBox" class="alert" role="alert" style="display: none;"></div>
+    </section>
+
+    <section class="panel results-panel">
+      <div class="results-grid">
+        <div class="text-column">
+          <div class="section-header">
+            <h3>解题步骤</h3>
+            <p class="hint">按顺序展示后端返回的步骤</p>
+          </div>
+          <div id="stepsContainer" class="card"></div>
+
+          <div class="section-header">
+            <h3>动画指令</h3>
+            <p class="hint">供动画模块解析的原始说明</p>
+          </div>
+          <div id="instructionsContainer" class="card"></div>
+
+          <div class="section-header">
+            <h3>题目信息</h3>
+            <p class="hint">类型、参数等辅助字段</p>
+          </div>
+          <div id="metaContainer" class="card"></div>
+        </div>
+
+        <div class="canvas-column">
+          <div class="section-header">
+            <h3>动画演示</h3>
+            <p class="hint">播放、暂停或重播示例动画</p>
+          </div>
+          <canvas id="animationCanvas" width="720" height="420"></canvas>
+          <div id="controls" class="controls" style="display: none;">
+            <button id="playBtn" type="button">播放</button>
+            <button id="pauseBtn" type="button">暂停</button>
+            <button id="replayBtn" type="button">重播</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="page-footer">
+    <p>后端接口：<code>POST /upload</code> (multipart/form-data, 字段名 <code>file</code>)</p>
+  </footer>
+
+  <script src="{{ url_for('static', filename='animation.js') }}"></script>
+  <script src="{{ url_for('static', filename='main.js') }}"></script>
 </body>
 </html>
