@@ -47,7 +47,7 @@ class Config:
     CLAUDE_API_KEY = os.environ.get("CLAUDE_API_KEY", "")
 
     # Claude 模型名称
-    CLAUDE_MODEL = os.environ.get("CLAUDE_MODEL", "claude-3-5-sonnet-20241022")
+    CLAUDE_MODEL = os.environ.get("CLAUDE_MODEL", "claude-3-5-sonnet-20240620")
 
     # Claude 最大 tokens
     CLAUDE_MAX_TOKENS = int(os.environ.get("CLAUDE_MAX_TOKENS", "2048"))

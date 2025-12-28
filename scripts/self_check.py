@@ -1,14 +1,20 @@
 #!/usr/bin/env python3
 """
-自检测试脚本 - 验证 OCR 和 Upload API 功能
+自检测试脚本 - 验证 Claude Pipeline 和 Upload API 功能
 
 测试项：
 1. Manual 模式：不同 manual_text 产生不同输出
-2. Manual 模式：不同图片产生不同输出（自动生成）
-3. Mathpix 模式：API 调用正常（如果配置了 Key）
-4. OCR 状态检查
+2. Claude 模式：API 调用正常（如果配置了 Key）
+3. Pipeline 状态检查
 
 使用方法：
+  # Manual 模式（无需 API Key）
+  export PIPELINE_MODE=manual
+  python scripts/self_check.py
+
+  # Claude 模式（需要配置 CLAUDE_API_KEY）
+  export PIPELINE_MODE=claude
+  export CLAUDE_API_KEY=your_api_key
   python scripts/self_check.py
 """
 
@@ -62,29 +68,29 @@ def check_server_health():
         return False
 
 
-def check_ocr_status():
-    """检查 OCR 状态"""
-    log_info("检查 OCR 状态...")
+def check_pipeline_status():
+    """检查 Pipeline 状态"""
+    log_info("检查 Pipeline 状态...")
     try:
-        resp = requests.get(f"{BASE_URL}/ocr/status", timeout=5)
+        resp = requests.get(f"{BASE_URL}/pipeline/status", timeout=5)
         if resp.status_code == 200:
             status = resp.json()
-            log_success(f"OCR 模式: {status['mode']}")
+            log_success(f"Pipeline 模式: {status['mode']}")
 
-            if status['mode'] == 'mathpix':
-                if status['mathpix_configured']:
-                    log_success("Mathpix API 已配置")
+            if status['mode'] == 'claude':
+                if status['claude_configured']:
+                    log_success("Claude API 已配置")
                 else:
-                    log_warning("Mathpix API 未配置")
+                    log_warning("Claude API 未配置")
                     if status.get('error'):
                         log_info(f"错误信息: {status['error']}")
 
             return status
         else:
-            log_error(f"OCR 状态检查失败: {resp.status_code}")
+            log_error(f"Pipeline 状态检查失败: {resp.status_code}")
             return None
     except Exception as e:
-        log_error(f"OCR 状态检查失败: {e}")
+        log_error(f"Pipeline 状态检查失败: {e}")
         return None
 
 
@@ -108,12 +114,13 @@ def test_manual_mode_with_different_texts():
     log_info("\n=== 测试 1: Manual 模式 - 不同 manual_text ===")
 
     # 设置 manual 模式
-    original_mode = os.environ.get("OCR_MODE")
-    os.environ["OCR_MODE"] = "manual"
+    original_mode = os.environ.get("PIPELINE_MODE")
+    os.environ["PIPELINE_MODE"] = "manual"
 
     texts = [
         "一个物体从10米高处以15m/s的初速度水平抛出，g=9.8m/s²",
         "一个物体从20米高处以25m/s的初速度水平抛出，g=10m/s²",
+        "一物体以30m/s的初速度与水平方向成45°角斜向上抛出，g=9.8m/s²",
     ]
 
     results = []
@@ -132,6 +139,7 @@ def test_manual_mode_with_different_texts():
                 results.append(result)
                 log_success(f"文本 {i+1} 解析成功")
                 log_info(f"  problem_type: {result.get('problem_type')}")
+                log_info(f"  animation_instructions.initial_speed: {result.get('animation_instructions', {}).get('initial_speed')}")
             else:
                 log_error(f"文本 {i+1} 解析失败: {resp.status_code}")
                 log_info(f"  响应: {resp.text[:200]}")
@@ -143,17 +151,17 @@ def test_manual_mode_with_different_texts():
 
     # 恢复原始模式
     if original_mode:
-        os.environ["OCR_MODE"] = original_mode
+        os.environ["PIPELINE_MODE"] = original_mode
     else:
-        os.environ.pop("OCR_MODE", None)
+        os.environ.pop("PIPELINE_MODE", None)
 
     # 验证结果不同
-    if len(results) >= 2:
+    if len(results) >= 3:
         # 检查至少一个关键字段不同
         different = (
-            results[0].get('problem_type') != results[1].get('problem_type') or
-            results[0].get('problem_text') != results[1].get('problem_text') or
-            results[0].get('animation_instructions') != results[1].get('animation_instructions')
+            len(set(r.get('problem_type') for r in results)) > 1 or
+            len(set(r.get('problem_text') for r in results)) == len(results) or
+            len(set(str(r.get('animation_instructions')) for r in results)) > 1
         )
 
         if different:
@@ -166,93 +174,27 @@ def test_manual_mode_with_different_texts():
     return False
 
 
-def test_manual_mode_with_different_images():
-    """测试 manual 模式：不同图片产生不同输出"""
-    log_info("\n=== 测试 2: Manual 模式 - 不同图片（自动生成） ===")
+def test_claude_mode():
+    """测试 Claude 模式（如果配置了 Key）"""
+    log_info("\n=== 测试 2: Claude 模式（可选） ===")
 
-    # 设置 manual 模式
-    original_mode = os.environ.get("OCR_MODE")
-    os.environ["OCR_MODE"] = "manual"
+    # 检查是否配置了 Claude Key
+    api_key = os.environ.get("CLAUDE_API_KEY", "").strip()
 
-    results = []
-
-    with tempfile.TemporaryDirectory() as tmpdir:
-        for i in range(2):
-            # 创建不同的图片文件
-            image_path = os.path.join(tmpdir, f"test_{i}.png")
-            create_dummy_image(image_path, content=f"test_{i}")
-
-            log_info(f"测试图片 {i+1}: {image_path}")
-
-            try:
-                with open(image_path, 'rb') as f:
-                    resp = requests.post(
-                        f"{BASE_URL}/upload",
-                        files={"file": (f"test_{i}.png", f, "image/png")},
-                        timeout=30
-                    )
-
-                if resp.status_code == 200:
-                    result = resp.json()
-                    results.append(result)
-                    log_success(f"图片 {i+1} 解析成功")
-                    log_info(f"  problem_type: {result.get('problem_type')}")
-                else:
-                    log_error(f"图片 {i+1} 解析失败: {resp.status_code}")
-                    log_info(f"  响应: {resp.text[:200]}")
-                    return False
-
-            except Exception as e:
-                log_error(f"图片 {i+1} 请求失败: {e}")
-                return False
-
-    # 恢复原始模式
-    if original_mode:
-        os.environ["OCR_MODE"] = original_mode
-    else:
-        os.environ.pop("OCR_MODE", None)
-
-    # 验证结果不同
-    if len(results) >= 2:
-        different = (
-            results[0].get('problem_text') != results[1].get('problem_text') or
-            results[0].get('animation_instructions') != results[1].get('animation_instructions')
-        )
-
-        if different:
-            log_success("✅ 测试通过：不同图片产生不同输出")
-            return True
-        else:
-            log_error("❌ 测试失败：不同图片产生相同输出")
-            log_info("可能原因：图片 hash 生成逻辑有问题")
-            return False
-
-    return False
-
-
-def test_mathpix_mode():
-    """测试 Mathpix 模式（如果配置了 Key）"""
-    log_info("\n=== 测试 3: Mathpix 模式（可选） ===")
-
-    # 检查是否配置了 Mathpix Key
-    app_id = os.environ.get("MATHPIX_APP_ID", "").strip()
-    app_key = os.environ.get("MATHPIX_APP_KEY", "").strip()
-
-    if not app_id or not app_key:
-        log_warning("Mathpix API 未配置，跳过此测试")
-        log_info("如需测试 Mathpix 模式，请设置环境变量：")
-        log_info("  export MATHPIX_APP_ID=your_app_id")
-        log_info("  export MATHPIX_APP_KEY=your_app_key")
+    if not api_key:
+        log_warning("Claude API 未配置，跳过此测试")
+        log_info("如需测试 Claude 模式，请设置环境变量：")
+        log_info("  export CLAUDE_API_KEY=your_api_key")
         return True  # 跳过不算失败
 
-    # 设置 mathpix 模式
-    original_mode = os.environ.get("OCR_MODE")
-    os.environ["OCR_MODE"] = "mathpix"
+    # 设置 claude 模式
+    original_mode = os.environ.get("PIPELINE_MODE")
+    os.environ["PIPELINE_MODE"] = "claude"
 
-    log_info("Mathpix API 已配置，测试上传...")
+    log_info("Claude API 已配置，测试上传...")
 
     with tempfile.TemporaryDirectory() as tmpdir:
-        image_path = os.path.join(tmpdir, "test_mathpix.png")
+        image_path = os.path.join(tmpdir, "test_claude.png")
         create_dummy_image(image_path)
 
         try:
@@ -260,33 +202,34 @@ def test_mathpix_mode():
                 resp = requests.post(
                     f"{BASE_URL}/upload",
                     files={"file": ("test.png", f, "image/png")},
-                    timeout=60  # Mathpix 可能较慢
+                    timeout=60  # Claude 可能较慢
                 )
 
             if resp.status_code == 200:
                 result = resp.json()
-                log_success("Mathpix 模式测试通过")
+                log_success("Claude 模式测试通过")
                 log_info(f"  problem_type: {result.get('problem_type')}")
+                log_info(f"  problem_text: {result.get('problem_text', '')[:50]}...")
                 return True
             else:
-                log_error(f"Mathpix 模式测试失败: {resp.status_code}")
+                log_error(f"Claude 模式测试失败: {resp.status_code}")
                 log_info(f"  响应: {resp.text[:200]}")
                 return False
 
         except Exception as e:
-            log_error(f"Mathpix 模式测试失败: {e}")
+            log_error(f"Claude 模式测试失败: {e}")
             return False
         finally:
             # 恢复原始模式
             if original_mode:
-                os.environ["OCR_MODE"] = original_mode
+                os.environ["PIPELINE_MODE"] = original_mode
             else:
-                os.environ.pop("OCR_MODE", None)
+                os.environ.pop("PIPELINE_MODE", None)
 
 
 def main():
     print("=" * 60)
-    print("OCR 系统自检测试")
+    print("Claude Pipeline 系统自检测试")
     print("=" * 60)
 
     # 1. 检查服务器健康
@@ -294,10 +237,10 @@ def main():
         log_error("服务器未运行，测试终止")
         sys.exit(1)
 
-    # 2. 检查 OCR 状态
-    ocr_status = check_ocr_status()
-    if not ocr_status:
-        log_error("OCR 状态检查失败，测试终止")
+    # 2. 检查 Pipeline 状态
+    pipeline_status = check_pipeline_status()
+    if not pipeline_status:
+        log_error("Pipeline 状态检查失败，测试终止")
         sys.exit(1)
 
     # 3. 运行测试
@@ -306,11 +249,8 @@ def main():
     # 测试 1: Manual 模式 - 不同 manual_text
     results.append(("Manual 模式 - 不同 manual_text", test_manual_mode_with_different_texts()))
 
-    # 测试 2: Manual 模式 - 不同图片
-    results.append(("Manual 模式 - 不同图片", test_manual_mode_with_different_images()))
-
-    # 测试 3: Mathpix 模式（可选）
-    results.append(("Mathpix 模式", test_mathpix_mode()))
+    # 测试 2: Claude 模式（可选）
+    results.append(("Claude 模式", test_claude_mode()))
 
     # 输出结果摘要
     print("\n" + "=" * 60)
