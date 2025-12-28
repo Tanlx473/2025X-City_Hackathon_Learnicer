@@ -179,9 +179,18 @@ uploadForm.addEventListener('submit', (event) => {
       }
 
       try {
-        engine = new AnimationEngine(canvas);
+        // 单例模式：首次创建，后续重用
+        if (!engine) {
+          engine = new AnimationEngine(canvas);
+          bindControls(engine);
+          console.log('[Main] 动画引擎已创建（单例）');
+        } else {
+          // 重用已有实例：先销毁旧动画，再加载新动画
+          engine.destroy();
+          console.log('[Main] 重用动画引擎（销毁旧动画）');
+        }
+
         engine.loadInstructions(animationData);
-        bindControls(engine);
         engine.play();
       } catch (err) {
         console.error('动画初始化失败:', err);

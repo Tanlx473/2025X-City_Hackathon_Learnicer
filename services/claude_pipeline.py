@@ -3,7 +3,7 @@
 
 环境变量依赖：
 - CLAUDE_API_KEY: Claude API 密钥（必需，claude 模式）
-- CLAUDE_MODEL: Claude 模型名称（可选，默认 claude-3-5-sonnet-20241022）
+- CLAUDE_MODEL: Claude 模型名称（可选，默认 claude-sonnet-4-5-20250929）
 - PIPELINE_MODE: claude/manual（可选，默认 claude）
 """
 
@@ -42,7 +42,7 @@ def get_claude_credentials() -> tuple[str, str]:
         RuntimeError: 环境变量未设置
     """
     api_key = os.environ.get("CLAUDE_API_KEY", "").strip()
-    model = os.environ.get("CLAUDE_MODEL", "claude-3-5-sonnet-20240620").strip()
+    model = os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-5-20250929").strip()
 
     if not api_key:
         raise RuntimeError(
@@ -688,6 +688,11 @@ def process_image(
 ) -> dict:
     """主入口：处理图片或文本，返回统一的结构化结果
 
+    智能模式选择：
+    - 如果提供了 manual_text，优先使用 manual pipeline（无论环境变量如何配置）
+    - 如果只提供了 image_source，使用 claude pipeline
+    - 这样可以灵活切换，无需修改环境变量
+
     Args:
         image_source: 图片路径/字节（claude 模式必需）
         manual_text: 手动输入的题目文本（manual 模式必需）
@@ -705,31 +710,30 @@ def process_image(
         ValueError: 参数错误
         RuntimeError: 处理失败
     """
-    mode = get_pipeline_mode()
-    logger.info(f"Pipeline 模式: {mode}")
+    # 智能模式选择：优先使用 manual_text（如果提供）
+    if manual_text and manual_text.strip():
+        # 有 manual_text，使用 manual pipeline
+        logger.info("✅ 检测到 manual_text，使用 Manual Pipeline")
+        return manual_pipeline(manual_text)
 
-    if mode == "claude":
-        # Claude 模式：必须提供图片
-        if not image_source:
-            raise ValueError("claude 模式需要提供 image_source（图片路径或字节）")
-
+    elif image_source:
+        # 有图片，使用 claude pipeline
+        logger.info("✅ 检测到 image_source，使用 Claude Pipeline")
         return call_claude_pipeline(image_source)
 
-    elif mode == "manual":
-        # Manual 模式：必须提供文本
-        if not manual_text:
+    else:
+        # 什么都没有，检查环境变量配置的模式并给出友好提示
+        mode = get_pipeline_mode()
+        if mode == "manual":
             raise ValueError(
                 "manual 模式需要提供 manual_text\n"
                 "请在上传请求中添加 manual_text 参数"
             )
-
-        return manual_pipeline(manual_text)
-
-    else:
-        raise ValueError(
-            f"不支持的 PIPELINE_MODE: {mode}\n"
-            f"可选值: claude, manual"
-        )
+        else:
+            raise ValueError(
+                "claude 模式需要提供 image_source（图片路径或字节）\n"
+                "或提供 manual_text 参数以使用 manual 模式"
+            )
 
 
 def get_pipeline_status() -> dict:

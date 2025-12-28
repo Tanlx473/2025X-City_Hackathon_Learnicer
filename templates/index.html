@@ -78,7 +78,20 @@
   <script src="/animations/animation_base.js"></script>
   <script src="/animations/free_fall.js"></script>
   <script src="/animations/projectile_motion.js"></script>
+  <script src="/animations/uniform.js"></script>
+  <script src="/animations/uniform_acceleration.js"></script>
+  <script src="/animations/uniform_circular.js"></script>
   <script src="/animations/physics_visualizer.js"></script>
+
+  <!-- 全局辅助函数（避免 AnimationBase 调用报错） -->
+  <script>
+    // updatePhysicsPanel: 占位函数，避免 animation_base.js:368 报错
+    // 如果未来需要实时显示物理参数面板，可以在此实现
+    function updatePhysicsPanel(animation) {
+      // 目前为空实现，仅防止报错
+      // 可扩展：更新 DOM 显示速度、加速度等实时数据
+    }
+  </script>
 
   <!-- 兼容适配层（A 同学接口 → C 同学实现） -->
   <script src="{{ url_for('static', filename='animation.js') }}"></script>
