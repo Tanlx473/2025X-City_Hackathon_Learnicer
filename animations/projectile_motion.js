@@ -27,6 +27,11 @@ class ProjectileMotion extends AnimationBase {
     this.t_land = (this.vy0 + Math.sqrt(delta)) / this.g;
     this.range = this.vx0 * this.t_land;
     
+    // 设置动态比例尺
+    this.maxRangeX = this.range;
+    this.maxRangeY = this.h_max;
+    this.calcDynamicScale();
+    
     console.log('关键点计算结果:', {
       最高点时间: this.t_max,
       最大高度: this.h_max,
@@ -49,9 +54,12 @@ class ProjectileMotion extends AnimationBase {
     this.trail = [];
     this.keyPoints = [];
     this.time = 0;
+    this.isEnded = false;
   }
   
   update(dt) {
+    if (this.isEnded) return;
+    
     const obj = this.objects[0];
     
     // 匀变速运动公式
@@ -83,68 +91,20 @@ class ProjectileMotion extends AnimationBase {
     
     // 结束条件
     if (obj.position.y < 0 || this.time > this.t_land + 0.1) {
-      this.pause();
+      this.isEnded = true;
       this.showResults();
     }
   }
   
   draw() {
     super.draw();
-    this.drawKeyPoints();
-    this.drawComponents(); // 绘制速度分量
+    // 修改：移除 drawKeyPoints() 和 drawComponents()，因为需求只在小球上标注，super.draw() 已处理向量
+    // this.drawKeyPoints(); // 移除全局关键点绘制
+    // this.drawComponents(); // 移除旧分量绘制，由 super 的 config 控制
   }
   
-  drawKeyPoints() {
-    this.keyPoints.forEach(point => {
-      const x = this.toCanvasX(point.x);
-      const y = this.toCanvasY(point.y);
-      
-      // 画圆圈
-      this.ctx.strokeStyle = 'green';
-      this.ctx.lineWidth = 2;
-      this.ctx.setLineDash([5, 5]);
-      this.ctx.beginPath();
-      this.ctx.arc(x, y, 20, 0, 2*Math.PI);
-      this.ctx.stroke();
-      this.ctx.setLineDash([]);
-      
-      // 标签
-      this.ctx.fillStyle = 'green';
-      this.ctx.font = 'bold 14px SimHei';
-      this.ctx.fillText(point.label, x + 25, y - 10);
-      
-      // 数据
-      this.ctx.font = '12px SimHei';
-      this.ctx.fillText(`t=${point.data.time.toFixed(2)}s`, x + 25, y + 10);
-      this.ctx.fillText(`h=${point.data.height.toFixed(2)}m`, x + 25, y + 25);
-    });
-  }
-  
-  drawComponents() {
-    const obj = this.objects[0];
-    const x = this.toCanvasX(obj.position.x);
-    const y = this.toCanvasY(obj.position.y);
-    
-    // 绘制vx（水平分量）
-    this.drawVector(
-      obj.position.x,
-      obj.position.y,
-      obj.velocity.x,
-      0,
-      'green',
-      'vₓ'
-    );
-    
-    // 绘制vy（竖直分量）
-    this.drawVector(
-      obj.position.x,
-      obj.position.y,
-      0,
-      obj.velocity.y,
-      'orange',
-      'vᵧ'
-    );
-  }
+  // 移除 drawKeyPoints() 因为需求简化标注
+  // 移除 drawComponents()，移到 base 的 drawVelocities
   
   showResults() {
     // 在Canvas上绘制结果面板

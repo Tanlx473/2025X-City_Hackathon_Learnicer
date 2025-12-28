@@ -88,29 +88,75 @@ class AnimationEngine {
     // 优先使用 motion_type_original，其次使用 type
     const motionType = raw.motion_type_original || raw.type || 'projectile';
 
-    // 映射到 PhysicsVisualizer 支持的类型
-    let subType;
+    // 提取通用参数
+    const v0 = raw.initial_speed !== undefined ? raw.initial_speed : (raw.v0 !== undefined ? raw.v0 : 20);
+    const angle = raw.angle !== undefined ? raw.angle : 45;
+    const g = raw.gravity !== undefined ? raw.gravity : (raw.g !== undefined ? raw.g : 9.8);
+    const h0 = raw.initial_y !== undefined ? raw.initial_y : (raw.y0 !== undefined ? raw.y0 : (raw.h0 !== undefined ? raw.h0 : 0));
+    const mass = raw.mass !== undefined ? raw.mass : 1;
+    const duration = raw.duration !== undefined ? raw.duration : 10;
+
+    // 映射到 PhysicsVisualizer 支持的类型并构建对应参数
+    let subType, parameters;
+
     if (motionType === 'free_fall') {
       subType = 'free_fall';
+      parameters = {
+        h0: h0 || 10,  // 自由落体默认高度
+        g: g,
+        mass: mass,
+        bounce: raw.bounce || false,
+        bounceLoss: raw.bounceLoss || 0.8
+      };
     } else if (motionType === 'uniform') {
       subType = 'uniform';
+      // Uniform 需要 vx, vy 而不是 v0, angle
+      const angleRad = (angle || 0) * Math.PI / 180;
+      parameters = {
+        vx: v0 * Math.cos(angleRad),
+        vy: v0 * Math.sin(angleRad),
+        x0: raw.initial_x !== undefined ? raw.initial_x : 0,
+        y0: h0,
+        mass: mass,
+        duration: duration,
+        g: 0  // 匀速运动无重力影响
+      };
+    } else if (motionType === 'uniform_acceleration') {
+      subType = 'uniform_acceleration';
+      parameters = {
+        F: raw.F !== undefined ? raw.F : 10,  // 拉力
+        mu: raw.mu !== undefined ? raw.mu : 0.2,  // 摩擦系数
+        mass: mass,
+        g: g,
+        x0: raw.initial_x !== undefined ? raw.initial_x : 0,
+        v0: v0,
+        duration: duration
+      };
+    } else if (motionType === 'uniform_circular') {
+      subType = 'uniform_circular';
+      parameters = {
+        radius: raw.radius !== undefined ? raw.radius : 5,  // 半径
+        omega: raw.omega !== undefined ? raw.omega : 1,  // 角速度
+        mass: mass,
+        mu: raw.mu !== undefined ? raw.mu : 0.5,
+        g: g,
+        duration: duration
+      };
     } else {
       // horizontal_projectile, vertical_throw, projectile 都映射为 projectile_motion
       subType = 'projectile_motion';
+      parameters = {
+        v0: v0,
+        angle: angle,
+        g: g,
+        h0: h0,
+        mass: mass
+      };
     }
 
     return {
       sub_type: subType,
-      parameters: {
-        v0: raw.initial_speed !== undefined ? raw.initial_speed : (raw.v0 !== undefined ? raw.v0 : 20),
-        angle: raw.angle !== undefined ? raw.angle : 45,
-        g: raw.gravity !== undefined ? raw.gravity : (raw.g !== undefined ? raw.g : 9.8),
-        h0: raw.initial_y !== undefined ? raw.initial_y : (raw.y0 !== undefined ? raw.y0 : (raw.h0 !== undefined ? raw.h0 : 0)),
-        mass: raw.mass !== undefined ? raw.mass : 1,
-        // 保留 scale 和 duration（如果 animations/ 需要）
-        scale: raw.scale,
-        duration: raw.duration
-      }
+      parameters: parameters
     };
   }
 

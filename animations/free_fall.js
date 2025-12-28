@@ -1,16 +1,21 @@
 class FreeFall extends AnimationBase {
   constructor(canvas, params) {
     super(canvas);
-    this.h0 = params.height || 20;  // 初始高度 m
-    this.g = params.g || 9.8;       // 重力加速度
-    this.mass = params.mass || 1;   // 质量 kg
+    // 兼容性：支持 height 或 h0
+    this.h0 = params.height !== undefined ? params.height : (params.h0 !== undefined ? params.h0 : 10);
+    this.g = params.g !== undefined ? params.g : 9.8;        // 重力加速度（默认值）
+    this.mass = params.mass !== undefined ? params.mass : 1;  // 质量（默认值）
+    this.bounce = params.bounce || false;  // 是否反弹
+    this.bounceLoss = params.bounceLoss || 0.8;  // 能量损失系数
+    this.showVelocity = params.showVelocity || true;
+    this.showAcceleration = params.showAcceleration || false;
     
     this.init();
   }
   
   init() {
     this.objects = [{
-      position: { x: 5, y: this.h0 },
+      position: { x: 5, y: this.h0 },  // x位置调整为5，避免靠边
       velocity: { x: 0, y: 0 },
       acceleration: { x: 0, y: -this.g },
       shape: 'circle',
@@ -21,9 +26,12 @@ class FreeFall extends AnimationBase {
     
     this.trail = [];
     this.time = 0;
+    this.isEnded = false;
   }
   
   update(dt) {
+    if (this.isEnded) return;
+    
     const obj = this.objects[0];
     
     // 更新速度
@@ -33,40 +41,24 @@ class FreeFall extends AnimationBase {
     obj.position.y += obj.velocity.y * dt;
     
     // 记录轨迹
-    if (this.time % 0.1 < dt) { // 每0.1秒记录一次
-      this.trail.push({
-        x: obj.position.x,
-        y: obj.position.y
-      });
+    if (this.time % 0.1 < dt) {
+      this.trail.push({ x: obj.position.x, y: obj.position.y });
     }
     
     // 落地检测
     if (obj.position.y <= 0) {
       obj.position.y = 0;
-      obj.velocity.y = -obj.velocity.y * 0.8; // 反弹（能量损失20%）
+      if (this.bounce && Math.abs(obj.velocity.y) > 0.5) {
+        obj.velocity.y = -obj.velocity.y * this.bounceLoss;
+      } else {
+        obj.velocity.y = 0;
+        this.isEnded = true;  // 停止运动
+      }
     }
   }
-}
-
-// 测试代码 - 仅在测试页面存在对应元素时运行
-if (typeof document !== 'undefined') {
-  const testCanvas = document.getElementById('test');
-  if (testCanvas) {
-    const anim = new FreeFall(testCanvas, {
-      height: 20,
-      g: 9.8,
-      mass: 1
-    });
-
-    anim.play();
-
-    // 添加控制
-    const pauseBtn = document.getElementById('pause-btn');
-    const playBtn = document.getElementById('play-btn');
-    const resetBtn = document.getElementById('reset-btn');
-
-    if (pauseBtn) pauseBtn.onclick = () => anim.pause();
-    if (playBtn) playBtn.onclick = () => anim.play();
-    if (resetBtn) resetBtn.onclick = () => anim.reset();
+  
+  draw() {
+    super.draw();
+    // 修改：移除旧的 showAcceleration 绘制，由 super 处理
   }
 }

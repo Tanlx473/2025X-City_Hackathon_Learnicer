@@ -2,7 +2,9 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <title>物理可视化集成测试</title>
+  <title>物理动画最终测试</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
+
   <style>
     body {
       font-family: 'Microsoft YaHei', SimHei, sans-serif;
@@ -12,12 +14,12 @@
     }
     
     .container {
-      display: flex;
-      gap: 20px;
+      display: flex;  /* 修改：新增 flex 布局 */
     }
     
     .canvas-area {
-      flex: 2;
+      flex: 1;  /* 画布占主要空间 */
+      margin-right: 20px;  /* 右侧间距 */
     }
     
     canvas {
@@ -27,6 +29,7 @@
     
     .controls {
       margin-top: 10px;
+      margin-bottom: 20px;
     }
     
     .controls button {
@@ -35,201 +38,366 @@
       cursor: pointer;
     }
     
-    .steps-panel {
-      flex: 1;
+    .sidebar {  /* 新增：右侧面板 */
+      width: 250px;
       background: #f5f5f5;
       padding: 15px;
       border-radius: 5px;
-      max-height: 600px;
-      overflow-y: auto;
+    }
+    
+    .sidebar h4 {
+      margin: 0 0 10px 0;
+    }
+    
+    .sidebar label {
+      display: block;
+      margin-bottom: 10px;
+    }
+    
+    #physics-panel {
+      margin-top: 20px;
+      background: white;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+    }
+    
+    #physics-panel ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    
+    #physics-panel li {
+      margin-bottom: 5px;
+      font-size: 14px;
+    }
+    
+    #physics-panel strong {
+      font-weight: bold;
+    }
+    
+    /* 新增：颜色匹配矢量图 */
+    .color-vx { color: green; }
+    .color-vy { color: orange; }
+    .color-v { color: blue; }
+    .color-g { color: red; }
+    
+    .steps-panel {
+      background: #f5f5f5;
+      padding: 15px;
+      border-radius: 5px;
+      margin-top: 20px;
     }
     
     .step-item {
       background: white;
-      padding: 10px;
+      padding: 15px;
       margin-bottom: 10px;
       border-radius: 3px;
-      cursor: pointer;
-      transition: all 0.3s;
-    }
-    
-    .step-item:hover {
-      background: #e3f2fd;
-    }
-    
-    .step-item.active {
-      background: #2196f3;
-      color: white;
+      line-height: 1.8;
     }
     
     .step-item h4 {
-      margin: 0 0 5px 0;
+      margin: 0 0 10px 0;
+      color: #2196f3;
     }
     
-    .step-item p {
-      margin: 0;
-      font-size: 14px;
+    .log-container {
+      margin-top: 20px;
+      padding: 10px;
+      background: #f0f0f0;
+      border-radius: 3px;
+      max-height: 200px;
+      overflow-y: auto;
     }
   </style>
+
+
 </head>
 <body>
-  <h1>物理题目可视化演示</h1>
+  <h1>物理动画最终测试</h1>
   
-  <div class="container">
+  <div class="container">  <!-- 修改：新增 container -->
     <div class="canvas-area">
-      <canvas id="physics-canvas" width="800" height="600"></canvas>
-      
+      <canvas id="test-canvas" width="1000" height="700"></canvas>
       <div class="controls">
         <button id="play-btn">▶ 播放</button>
         <button id="pause-btn">⏸ 暂停</button>
         <button id="reset-btn">⏮ 重置</button>
-        <button id="step-back">⏪</button>
-        <button id="step-forward">⏩</button>
-        
-        <label>速度:
+        <button id="export-btn">📷 导出帧</button>
+        <label>倍速:
           <select id="speed-select">
-            <option value="0.5">0.5x</option>
+            <option value="2">0.5x</option>
             <option value="1" selected>1x</option>
-            <option value="2">2x</option>
+            <option value="0.5">2x</option>
           </select>
         </label>
-        
-        <button id="export-btn">📷 导出当前帧</button>
+        <button id="next-test-btn" style="margin-left: 20px; background: #4CAF50; color: white;">下一个测试</button>
       </div>
     </div>
     
-    <div class="steps-panel" id="steps-panel">
-      <h3>解题步骤</h3>
-      <!-- 步骤将动态填充 -->
+    <div class="sidebar">  <!-- 新增：右侧 sidebar -->
+      <h4>显示选项</h4>
+      <label>
+        <input type="checkbox" id="show-velocity-vectors" checked> 速度矢量图
+      </label>
+      <label>
+        <input type="checkbox" id="show-force-diagram"> 受力分析图
+      </label>
+      
+      <div id="physics-panel">
+        <p>实时物理量：</p>
+        <!-- 这里动态更新 -->
+      </div>
     </div>
   </div>
+  
+  <div class="steps-panel" id="steps-panel">
+    <h3>解题步骤</h3>
+    <p>点击"下一个测试"开始</p>
+  </div>
+  
+  <div class="log-container" id="log-container"></div>
   
   <!-- 引入所有脚本 -->
   <script src="animation_base.js"></script>
   <script src="free_fall.js"></script>
   <script src="projectile_motion.js"></script>
-  <script src="incline_plane.js"></script>
-  <script src="circular_motion.js"></script>
-  <script src="physics_visualizer.js"></script>
+  <script src="uniform.js"></script>
+  <script src="simulation_api.js"></script>
+  <script src="uniform_acceleration.js"></script>
+  <script src="uniform_circular.js"></script>
   
   <script>
-    // 模拟后端返回的数据（实际应从API获取）
-    const mockBackendData = {
-      problem_type: "mechanics",
-      sub_type: "projectile_motion",
-      description: "一小球以20m/s的初速度从地面以45°角斜向上抛出，求最大高度和射程。(g=9.8m/s²)",
-      
-      parameters: {
-        v0: 20,
-        angle: 45,
-        h0: 0,
-        g: 9.8,
-        mass: 1
-      },
-      
-      solution_steps: [
-        {
-          step: 1,
-          description: "分解初速度",
-          formula: "vₓ = v₀·cos45° = 14.14 m/s, vᵧ = v₀·sin45° = 14.14 m/s",
-          animation_time: [0, 1]
-        },
-        {
-          step: 2,
-          description: "物体上升阶段",
-          formula: "最高点时 vᵧ = 0",
-          animation_time: [1, 1.44]
-        },
-        {
-          step: 3,
-          description: "计算最大高度",
-          formula: "h_max = vᵧ²/(2g) = 10.2 m",
-          animation_time: [1.44, 1.5]
-        },
-        {
-          step: 4,
-          description: "物体下降阶段",
-          formula: "vᵧ = gt",
-          animation_time: [1.5, 2.88]
-        },
-        {
-          step: 5,
-          description: "计算射程",
-          formula: "R = v₀²·sin(2θ)/g = 40.8 m",
-          animation_time: [2.88, 3]
+    let currentAnimation;
+    const canvas = document.getElementById('test-canvas');
+    const velocityCheckbox = document.getElementById('show-velocity-vectors');
+    const forceCheckbox = document.getElementById('show-force-diagram');
+    const physicsPanel = document.getElementById('physics-panel');
+    
+    // 模拟不同测试案例
+    const testCases = [
+      {
+        description: '自由落体',
+        response: {
+          animation_instructions: { type: 'free_fall' },
+          parameters: { height: 5, g: 9.8, mass: 1, bounce: true, bounceLoss: 0.6 },
+          solution_steps: [
+            { title: '步骤1：确定初始条件', content: '初始高度 $$h_0 = 20\\text{ m}$$，初速度 $$v_0 = 0$$，重力加速度 $$g = 9.8\\text{ m/s}^2$$' },
+            { title: '步骤2：计算速度', content: '根据速度公式：$$v = v_0 + gt = 0 + 9.8t = 9.8t\\text{ m/s}$$' },
+            { title: '步骤3：计算位置', content: '根据位移公式：$$h = h_0 - \\frac{1}{2}gt^2 = 20 - 4.9t^2\\text{ m}$$' },
+            { title: '步骤4：落地时间', content: '令 $$h = 0$$，得 $$t = \\sqrt{\\frac{2h_0}{g}} = \\sqrt{\\frac{40}{9.8}} \\approx 2.02\\text{ s}$$' }
+          ]
         }
-      ]
+      },
+      {
+        description: '抛体运动',
+        response: {
+          animation_instructions: { type: 'projectile_motion' },
+          parameters: { v0: 20, angle: 45, h0: 0, g: 9.8, mass: 1 },
+          solution_steps: [
+            { title: '步骤1：分解初速度', content: '水平分量：$$v_{x0} = v_0\\cos\\theta = 20\\cos45° = 14.14\\text{ m/s}$$<br>竖直分量：$$v_{y0} = v_0\\sin\\theta = 20\\sin45° = 14.14\\text{ m/s}$$' },
+            { title: '步骤2：最高点计算', content: '最高点时间：$$t_{max} = \\frac{v_{y0}}{g} = \\frac{14.14}{9.8} = 1.44\\text{ s}$$<br>最大高度：$$h_{max} = \\frac{v_{y0}^2}{2g} = \\frac{14.14^2}{19.6} = 10.2\\text{ m}$$' },
+            { title: '步骤3：飞行时间', content: '总飞行时间：$$t_{total} = \\frac{2v_{y0}}{g} = \\frac{2 \\times 14.14}{9.8} = 2.89\\text{ s}$$' },
+            { title: '步骤4：水平射程', content: '射程：$$R = v_{x0} \\cdot t_{total} = 14.14 \\times 2.89 = 40.86\\text{ m}$$' }
+          ]
+        }
+      },
+      {
+        description: '竖直上抛',
+        response: {
+          animation_instructions: { type: 'vertical_throw' },
+          parameters: { v0: 15, h0: 1, g: 9.8, mass: 1 },
+          solution_steps: [
+            { title: '步骤1：初始条件', content: '初速度方向向上 $$v_0 = 15\\text{ m/s}$$，加速度向下 $$a = -g = -9.8\\text{ m/s}^2$$' },
+            { title: '步骤2：最高点', content: '最高点速度为0：$$v = v_0 - gt = 0$$<br>时间：$$t_{max} = \\frac{v_0}{g} = \\frac{15}{9.8} = 1.53\\text{ s}$$<br>高度：$$h_{max} = \\frac{v_0^2}{2g} = \\frac{225}{19.6} = 11.48\\text{ m}$$' },
+            { title: '步骤3：回到地面', content: '总时间：$$t_{total} = 2t_{max} = 3.06\\text{ s}$$<br>落地速度：$$v = -v_0 = -15\\text{ m/s}$$' }
+          ]
+        }
+      },
+      {
+        description: '匀速直线',
+        response: {
+          animation_instructions: { type: 'uniform' },
+          parameters: { vx: 10, vy: 0, x0: 0, y0: 5, mass: 1, duration: 8 },
+          solution_steps: [
+            { title: '步骤1：匀速运动特征', content: '速度恒定：$$v_x = 10\\text{ m/s}$$，$$v_y = 0\\text{ m/s}$$<br>加速度为零：$$a = 0$$' },
+            { title: '步骤2：位置计算', content: '位移公式：$$x = x_0 + v_x t = 0 + 10t = 10t\\text{ m}$$<br>$$y = y_0 + v_y t = 5 + 0 = 5\\text{ m}$$（保持不变）' },
+            { title: '步骤3：运动规律', content: '匀速直线运动，轨迹为水平直线，8秒后位移 $$s = 80\\text{ m}$$' }
+          ]
+        }
+      },
+      {
+  description: '匀加速直线运动',
+  response: {
+    animation_instructions: { type: 'uniform_acceleration' },
+    parameters: { F: 50, mu: 0.2, mass: 10, g: 9.8, v0: 0, duration: 10 },
+    solution_steps: [
+      { title: '步骤1: 确定力', content: '拉力 F = 50 N, 摩擦系数 μ = 0.2, 质量 m = 10 kg, g = 9.8 m/s²' },
+      { title: '步骤2: 计算支撑力和摩擦力', content: '支撑力 Fn = mg = 10 × 9.8 = 98 N<br>摩擦力 f = μ Fn = 0.2 × 98 = 19.6 N' },
+      { title: '步骤3: 计算加速度', content: '净力 F_net = F - f = 50 - 19.6 = 30.4 N<br>加速度 a = F_net / m = 30.4 / 10 = 3.04 m/s²' },
+      { title: '步骤4: 运动方程', content: '速度 v = v0 + a t = 0 + 3.04 t m/s<br>位移 s = 0.5 a t² = 1.52 t² m' }
+    ]
+  }
+},
+{
+  description: '匀速圆周运动',
+  response: {
+    animation_instructions: { type: 'uniform_circular' },
+    parameters: { radius: 5, omega: 2, mass: 1, mu: 0.5, g: 9.8, duration: 10 },
+    solution_steps: [
+      { title: '步骤1: 确定参数', content: '半径 r = 5 m, 角速度 ω = 2 rad/s, 质量 m = 1 kg, g = 9.8 m/s²' },
+      { title: '步骤2: 计算线速度和向心力', content: '线速度 v = r ω = 5 × 2 = 10 m/s<br>向心力 Fc = m v² / r = 1 × 100 / 5 = 20 N' },
+      { title: '步骤3: 检查摩擦力', content: '支撑力 Fn = mg = 9.8 N<br>最大摩擦 f_max = μ Fn = 0.5 × 9.8 = 4.9 N<br>(注: 此例 f_max < Fc, 可能无法维持, 实际需调整参数)' },
+      { title: '步骤4: 运动规律', content: '位置: x = r cos(ω t), y = r sin(ω t)<br>速度方向切向, 加速度向心' }
+    ]
+  }
+}
+    ];
+    
+    let currentTestIndex = 0;
+    
+    // 下一个测试
+    document.getElementById('next-test-btn').onclick = () => {
+      const test = testCases[currentTestIndex];
+      log(`开始测试: ${test.description}`);
+      const apiResponse = test.response;
+      currentAnimation = loadAnimationFromApi(canvas, apiResponse);
+      
+      // 修改：加载新动画后，立即同步 checkbox 状态
+      currentAnimation.config.showVelocityVectors = velocityCheckbox.checked;
+      currentAnimation.config.showForceDiagram = forceCheckbox.checked;
+      updatePhysicsPanel(currentAnimation);
+      
+      currentAnimation.play();
+      
+      // 渲染步骤
+      renderSteps(apiResponse.solution_steps);
+      
+      currentTestIndex = (currentTestIndex + 1) % testCases.length;
     };
     
-    // 初始化可视化器
-    const visualizer = new PhysicsVisualizer('physics-canvas');
-    
-    // 加载动画
-    visualizer.loadAnimation(mockBackendData);
-    
-    // 渲染解题步骤
-    function renderSteps(steps) {
-      const panel = document.getElementById('steps-panel');
-      steps.forEach((step, index) => {
-        const div = document.createElement('div');
-        div.className = 'step-item';
-        div.id = `step-${index}`;
-        div.innerHTML = `
-          <h4>步骤${step.step}：${step.description}</h4>
-          <p>${step.formula}</p>
-        `;
-        div.onclick = () => {
-          visualizer.playStep(index);
-          // 高亮当前步骤
-          document.querySelectorAll('.step-item').forEach(el => {
-            el.classList.remove('active');
-          });
-          div.classList.add('active');
-        };
-        panel.appendChild(div);
-      });
-    }
-    
-    renderSteps(mockBackendData.solution_steps);
-    
-    // 绑定控制按钮
-    document.getElementById('play-btn').onclick = () => visualizer.play();
-    document.getElementById('pause-btn').onclick = () => visualizer.pause();
-    document.getElementById('reset-btn').onclick = () => visualizer.reset();
-    document.getElementById('step-back').onclick = () => {
-      if (visualizer.currentAnimation) {
-        visualizer.currentAnimation.stepBackward();
+    // 控制按钮
+    document.getElementById('play-btn').onclick = () => {
+      if (currentAnimation) {
+        if (currentAnimation.isEnded) {
+          currentAnimation.reset();
+          currentAnimation.play();
+        } else {
+          currentAnimation.play();
+        }
       }
     };
-    document.getElementById('step-forward').onclick = () => {
-      if (visualizer.currentAnimation) {
-        visualizer.currentAnimation.stepForward();
+    
+    document.getElementById('pause-btn').onclick = () => currentAnimation?.pause();
+    document.getElementById('reset-btn').onclick = () => currentAnimation?.reset();
+    document.getElementById('export-btn').onclick = () => {
+      if (currentAnimation) {
+        const dataURL = canvas.toDataURL('image/png');
+        const link = document.createElement('a');
+        link.download = `frame_${Date.now()}.png`;
+        link.href = dataURL;
+        link.click();
       }
     };
     
     document.getElementById('speed-select').onchange = function() {
-      if (visualizer.currentAnimation) {
-        visualizer.currentAnimation.setSpeed(parseFloat(this.value));
+      if (currentAnimation) {
+        currentAnimation.config.fps = 60 * parseFloat(this.value);
+        currentAnimation.dt = 1 / currentAnimation.config.fps;
       }
     };
     
-    document.getElementById('export-btn').onclick = () => {
-      const dataURL = visualizer.exportFrame();
-      const link = document.createElement('a');
-      link.download = `physics_frame_${Date.now()}.png`;
-      link.href = dataURL;
-      link.click();
+    // 新增：checkbox 事件
+    velocityCheckbox.onchange = () => {
+      if (currentAnimation) {
+        currentAnimation.config.showVelocityVectors = velocityCheckbox.checked;
+        updatePhysicsPanel(currentAnimation);  // 更新面板
+      }
     };
     
-    // 监听动画事件
-    document.getElementById('physics-canvas').addEventListener('step:active', (e) => {
-      console.log('激活步骤:', e.detail.stepIndex);
-    });
+    forceCheckbox.onchange = () => {
+      if (currentAnimation) {
+        currentAnimation.config.showForceDiagram = forceCheckbox.checked;
+        updatePhysicsPanel(currentAnimation);  // 更新面板
+      }
+    };
     
-    // 自动播放
-    setTimeout(() => {
-      visualizer.play();
-    }, 1000);
+  window.updatePhysicsPanel = function(animation) {
+  if (!animation) return;
+  const values = animation.getPhysicsValues();
+  let html = '<strong>实时物理量：</strong><ul>';
+  
+  if (animation.config.showVelocityVectors) {
+    html += `
+      <li><strong>速度矢量：</strong></li>
+    `;
+    // 动态检查：如果有 vx/vy（直线或抛体运动），显示分量；否则显示切向速度（圆周运动）
+    if (values.vx !== undefined && values.vy !== undefined) {
+      html += `
+        <li>水平速度 (Vx): <span class="color-vx">${values.vx} m/s</span></li>
+        <li>竖直速度 (Vy): <span class="color-vy">${values.vy} m/s</span></li>
+      `;
+    } else if (values.v !== undefined) {
+      html += `
+        <li>切向速度 (v): <span class="color-v">${values.v} m/s</span></li>
+      `;
+    }
+    // 总是显示合速度 v（如果存在）
+    if (values.v !== undefined) {
+      html += `
+        <li>合速度 (V): <span class="color-v">${values.v} m/s</span></li>
+      `;
+    }
+    // 如果有角速度，显示（适用于圆周运动）
+    if (values.omega !== undefined) {
+      html += `<li>角速度 (ω): ${values.omega} rad/s</li>`;
+    }
+  }
+  
+  if (animation.config.showForceDiagram) {
+    html += `
+      <li><strong>受力分析：</strong></li>
+      <li>重力 (G): <span class="color-g">${values.gForce} N</span></li>
+    `;
+    // 添加新力（已有兼容）
+    if (values.friction) html += `<li>摩擦力 (f): <span class="color-f">${values.friction} N</span></li>`;
+    if (values.tension) html += `<li>拉力 (F): <span class="color-F">${values.tension} N</span></li>`;
+    if (values.normal) html += `<li>支撑力 (Fn): <span class="color-Fn">${values.normal} N</span></li>`;
+    if (values.centripetal) html += `<li>向心力 (Fc): <span class="color-Fc">${values.centripetal} N</span></li>`;
+    if (values.omega) html += `<li>角速度 (ω): ${values.omega} rad/s</li>`;
+  }
+  
+  if (!animation.config.showVelocityVectors && !animation.config.showForceDiagram) {
+    html += '<li>无选中选项</li>';
+  }
+  
+  html += '</ul>';
+  physicsPanel.innerHTML = html;
+};
+    
+    function renderSteps(steps) {
+      const panel = document.getElementById('steps-panel');
+      panel.innerHTML = '<h3>解题步骤</h3>';
+      steps.forEach((step, i) => {
+        const div = document.createElement('div');
+        div.className = 'step-item';
+        div.innerHTML = `<h4>${step.title}</h4><p>${step.content}</p>`;
+        panel.appendChild(div);
+      });
+      
+      // 触发MathJax渲染
+      if (window.MathJax) {
+        MathJax.typesetPromise([panel]);
+      }
+    }
+    
+    function log(message) {
+      const logDiv = document.createElement('div');
+      logDiv.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      document.getElementById('log-container').appendChild(logDiv);
+    }
   </script>
 </body>
 </html>

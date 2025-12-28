@@ -27,31 +27,45 @@ class PhysicsVisualizer {
    */
   loadAnimation(data) {
     console.log('接收到动画数据:', data);
-    
+
     this.animationData = data;
     const params = data.parameters;
     const subType = data.sub_type;
-    
+
     // 根据题型创建对应的动画对象
     switch(subType) {
       case 'free_fall':
         this.currentAnimation = new FreeFall(this.canvas, params);
         break;
-        
+
       case 'projectile_motion':
         this.currentAnimation = new ProjectileMotion(this.canvas, params);
         break;
-        
+
+      case 'uniform':
+        this.currentAnimation = new Uniform(this.canvas, params);
+        break;
+
+      case 'uniform_acceleration':
+        this.currentAnimation = new UniformAcceleration(this.canvas, params);
+        break;
+
+      case 'uniform_circular':
+        this.currentAnimation = new UniformCircular(this.canvas, params);
+        break;
+
       case 'incline_plane':
         this.currentAnimation = new InclinePlaneMotion(this.canvas, params);
         break;
-        
+
       case 'circular_motion':
         this.currentAnimation = new CircularMotion(this.canvas, params);
         break;
-        
+
       default:
-        throw new Error(`不支持的题型: ${subType}`);
+        console.warn(`未知的动画类型: ${subType}，尝试使用 projectile_motion 作为 fallback`);
+        this.currentAnimation = new ProjectileMotion(this.canvas, params);
+        break;
     }
     
     // 触发事件通知前端
