@@ -55,8 +55,13 @@ def get_ocr():
                 lang = os.environ.get("OCR_LANG", "ch")
 
                 logger.info(f"正在初始化 PaddleOCR（语言: {lang}）...")
-                _ocr = PaddleOCR(use_angle_cls=True, lang=lang, show_log=False)
+                # 使用最基础的配置以兼容不同版本的 PaddleOCR
+                _ocr = PaddleOCR(
+                    use_angle_cls=True,  # 启用方向分类器（提高倾斜文字识别）
+                    lang=lang            # 语言：ch=中英文混合，en=英文
+                )
                 logger.info("PaddleOCR 初始化成功")
+                logger.info(f"PaddleOCR 配置: use_angle_cls=True, lang={lang}")
 
             except ImportError as e:
                 logger.error(f"PaddleOCR 导入失败: {e}")
@@ -118,19 +123,34 @@ def _paddle_ocr_extract(image_path: str) -> str:
     if ocr == "mock" or ocr == "manual":
         raise ValueError("当前 OCR provider 不是 paddle")
 
-    result = ocr.ocr(image_path, cls=True)
+    logger.info(f"开始 OCR 识别: {image_path}")
+    result = ocr.ocr(image_path)
 
     if not result or not result[0]:
         logger.warning(f"PaddleOCR 未识别到文本: {image_path}")
         return ""
 
     # 修复 bug：PaddleOCR 返回 result[0] 才是行列表
+    logger.info(f"OCR 识别到 {len(result[0])} 行文本")
+
+    # 输出每行的识别结果和置信度（用于调试）
+    for i, line in enumerate(result[0]):
+        try:
+            text = line[1][0]
+            confidence = line[1][1]
+            logger.debug(f"第 {i+1} 行: {text} (置信度: {confidence:.2f})")
+        except (IndexError, TypeError):
+            logger.warning(f"第 {i+1} 行解析失败")
+
     lines = [_safe_extract_line_text(line) for line in result[0]]
 
     # 过滤空行，保持顺序
     lines = [line for line in lines if line.strip()]
 
-    return "\n".join(lines).strip()
+    extracted_text = "\n".join(lines).strip()
+    logger.info(f"OCR 识别完成，提取了 {len(lines)} 行有效文本")
+
+    return extracted_text
 
 
 def _mock_ocr_extract(image_path: str) -> str:
