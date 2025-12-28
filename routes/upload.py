@@ -20,69 +20,67 @@ def upload():
 
     支持 manual_text 参数，允许直接传入文本跳过 OCR（用于调试和降级）
     """
-    # 1. 检查是否有手动输入的文本（降级方案）
+    # 1. 获取可选的手动输入文本
     manual_text = request.form.get("manual_text", "").strip()
 
-    if manual_text:
-        logger.info("使用手动输入的文本，跳过 OCR")
-        ocr_text = manual_text
-    else:
-        # 2. 正常流程：图片上传 + OCR
-        if "file" not in request.files:
-            return jsonify({
-                "error": "missing_file",
-                "message": "请上传图片文件，或使用 manual_text 参数直接输入文本"
-            }), 400
+    # 2. 检查图片上传（在 manual 模式下也需要一个占位图片或跳过）
+    if "file" not in request.files and not manual_text:
+        return jsonify({
+            "error": "missing_file",
+            "message": "请上传图片文件，或使用 manual_text 参数直接输入文本"
+        }), 400
 
+    # 3. 处理图片上传（如果有）
+    save_path = None
+    if "file" in request.files:
         f = request.files["file"]
-        if not f or f.filename == "":
-            return jsonify({
-                "error": "empty_filename",
-                "message": "文件名为空"
-            }), 400
-
-        if not allowed_file(f.filename):
-            return jsonify({
-                "error": "unsupported_file_type",
-                "message": f"不支持的文件类型，仅支持: {', '.join(current_app.config['ALLOWED_EXTENSIONS'])}"
-            }), 400
-
-        filename = secure_filename(f.filename)
-        save_path = os.path.join(current_app.config["UPLOAD_FOLDER"], filename)
-
-        # 保存文件
-        try:
-            f.save(save_path)
-            logger.info(f"文件已保存: {save_path}")
-        except Exception as e:
-            logger.error(f"保存文件失败: {e}")
-            return jsonify({
-                "error": "file_save_failed",
-                "message": "保存文件失败",
-                "details": str(e)
-            }), 500
-
-        # OCR 提取文本（使用新接口，支持 manual_text fallback）
-        try:
-            ocr_text = extract_text(save_path, manual_text=None)
-            logger.info(f"OCR 识别成功，文本长度: {len(ocr_text)}")
-
-            if not ocr_text or not ocr_text.strip():
-                logger.warning("OCR 未识别到文本")
+        if f and f.filename != "":
+            if not allowed_file(f.filename):
                 return jsonify({
-                    "error": "ocr_no_text",
-                    "message": "未能从图片中识别到文本，请确保图片清晰且包含文字",
-                    "suggestion": "您也可以使用 manual_text 参数直接输入题目文本"
+                    "error": "unsupported_file_type",
+                    "message": f"不支持的文件类型，仅支持: {', '.join(current_app.config['ALLOWED_EXTENSIONS'])}"
                 }), 400
 
-        except Exception as e:
-            logger.error(f"OCR 失败: {e}")
+            filename = secure_filename(f.filename)
+            save_path = os.path.join(current_app.config["UPLOAD_FOLDER"], filename)
+
+            # 保存文件
+            try:
+                f.save(save_path)
+                logger.info(f"文件已保存: {save_path}")
+            except Exception as e:
+                logger.error(f"保存文件失败: {e}")
+                return jsonify({
+                    "error": "file_save_failed",
+                    "message": "保存文件失败",
+                    "details": str(e)
+                }), 500
+
+    # 4. OCR 提取文本（统一调用 extract_text，支持 manual_text）
+    try:
+        # 如果没有图片但有 manual_text，使用一个占位路径
+        if not save_path:
+            save_path = "placeholder.jpg"  # manual 模式下不实际使用
+
+        ocr_text = extract_text(save_path, manual_text=manual_text or None)
+        logger.info(f"OCR 识别成功，文本长度: {len(ocr_text)}")
+
+        if not ocr_text or not ocr_text.strip():
+            logger.warning("OCR 未识别到文本")
             return jsonify({
-                "error": "ocr_failed",
-                "message": "OCR 识别失败",
-                "details": str(e),
-                "suggestion": "您可以使用 manual_text 参数直接输入题目文本"
-            }), 500
+                "error": "ocr_no_text",
+                "message": "未能从图片中识别到文本，请确保图片清晰且包含文字",
+                "suggestion": "您也可以使用 manual_text 参数直接输入题目文本"
+            }), 400
+
+    except Exception as e:
+        logger.error(f"OCR 失败: {e}")
+        return jsonify({
+            "error": "ocr_failed",
+            "message": "OCR 识别失败",
+            "details": str(e),
+            "suggestion": "您可以使用 manual_text 参数直接输入题目文本"
+        }), 500
 
     # 3. LLM/规则引擎：解析物理题
     try:
